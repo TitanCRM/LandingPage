@@ -1,0 +1,44 @@
+name: Build & deploy Titan CRM landing page
+
+on:
+  push:
+    branches: [main]   # rebuild on every merge to main
+
+permissions:
+  contents: read       # checkout repo
+  pages: write         # push to the Pages site
+  id-token: write      # for secure deployment
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      - run: npm ci                    # install dev-deps
+      - run: npm run build             # tailwind → public/assets/css
+
+      # stage the site
+      - run: |
+          mkdir dist
+          cp -r public/* dist/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist                   # what we just staged
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
